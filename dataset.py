@@ -25,22 +25,28 @@ def _sample_paths(image_id, images_dir, labels_dir):
     return pre, post, label
 
 
-def list_ids(images_dir, labels_dir):
-    """Return sorted base ids that have a pre image, post image, and post JSON."""
+def list_ids(images_dir, labels_dir, events=None):
+    """Return sorted base ids that have a pre image, post image, and post JSON.
+
+    xBD ids look like ``<event>_<number>`` (e.g. ``hurricane-michael_00000123``).
+    If ``events`` is given, only ids from those disaster events are kept.
+    """
     ids = []
     for fname in os.listdir(images_dir):
         if not fname.endswith(f"{PRE_SUFFIX}.png"):
             continue
         image_id = fname[: -len(f"{PRE_SUFFIX}.png")]
+        if events and image_id.rsplit("_", 1)[0] not in events:
+            continue
         pre, post, label = _sample_paths(image_id, images_dir, labels_dir)
         if os.path.exists(pre) and os.path.exists(post) and os.path.exists(label):
             ids.append(image_id)
     return sorted(ids)
 
 
-def make_splits(images_dir, labels_dir, val_frac=0.15, seed=42):
+def make_splits(images_dir, labels_dir, val_frac=0.15, seed=42, events=None):
     """Deterministically split ids into (train_ids, val_ids)."""
-    ids = list_ids(images_dir, labels_dir)
+    ids = list_ids(images_dir, labels_dir, events)
     rng = random.Random(seed)
     rng.shuffle(ids)
     n_val = int(round(len(ids) * val_frac))

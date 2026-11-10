@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from dataset import XView2Dataset, make_splits
-from mask_utils import IGNORE_INDEX, NUM_CLASSES
+from mask_utils import IGNORE_INDEX, NUM_CLASSES, polygons_to_mask
 from model import UNet
 
 CLASS_NAMES = ["no-damage", "minor", "major", "destroyed", "background"]
@@ -70,6 +70,21 @@ def evaluate(model, loader, device, criterion):
     }
 
 
+def class_weights(labels_dir, ids, max_samples=200, seed=0):
+    """Inverse-sqrt pixel-frequency weights (mean 1) from a sample of train masks."""
+    rng = np.random.default_rng(seed)
+    sample = rng.permutation(ids)[:max_samples]
+    counts = np.zeros(NUM_CLASSES, dtype=np.float64)
+    for image_id in sample:
+        mask = polygons_to_mask(
+            os.path.join(labels_dir, f"{image_id}_post_disaster.json")
+        )
+        counts += np.bincount(mask[mask != IGNORE_INDEX], minlength=NUM_CLASSES)
+    freq = np.maximum(counts / counts.sum(), 1e-6)
+    w = 1.0 / np.sqrt(freq)
+    return w / w.mean()
+
+
 def train_one_epoch(model, loader, device, criterion, optimizer):
     model.train()
     running, n = 0.0, 0
@@ -101,6 +116,14 @@ def main():
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--events", nargs="+", default=None,
+        help="only use these xBD disaster events, e.g. hurricane-michael",
+    )
+    parser.add_argument(
+        "--weighted-loss", action="store_true",
+        help="weight cross-entropy by inverse-sqrt class pixel frequency",
+    )
     parser.add_argument("--out", default="checkpoints/unet_best.pt")
     args = parser.parse_args()
 
@@ -114,7 +137,7 @@ def main():
     print(f"device: {device}")
 
     train_ids, val_ids = make_splits(
-        args.images_dir, args.labels_dir, args.val_frac, args.seed
+        args.images_dir, args.labels_dir, args.val_frac, args.seed, args.events
     )
     if not train_ids:
         raise SystemExit("no training samples found (need pre+post png and post json)")
@@ -136,11 +159,17 @@ def main():
     )
 
     model = UNet(in_channels=6, num_classes=NUM_CLASSES, base=args.base).to(device)
-    criterion = nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
+    weight = None
+    if args.weighted_loss:
+        w = class_weights(args.labels_dir, train_ids)
+        print("class weights: " + "  ".join(
+            f"{n}={v:.2f}" for n, v in zip(CLASS_NAMES, w)))
+        weight = torch.tensor(w, dtype=torch.float32, device=device)
+    criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=IGNORE_INDEX)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    best_iou = -1.0
+    best_iou = float("-inf")
 
     for epoch in range(1, args.epochs + 1):
         train_loss = train_one_epoch(
@@ -169,7 +198,12 @@ def main():
         if score > best_iou:
             best_iou = score
             torch.save(
-                {"model": model.state_dict(), "epoch": epoch, "score": score},
+                {
+                    "model": model.state_dict(),
+                    "epoch": epoch,
+                    "score": score,
+                    "args": vars(args),
+                },
                 args.out,
             )
             print(f"    saved checkpoint -> {args.out}")

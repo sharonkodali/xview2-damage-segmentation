@@ -1,0 +1,89 @@
+{
+  "checkpoint_epoch": 38,
+  "train_args": {
+    "images_dir": "data/xbd/train/images",
+    "labels_dir": "data/xbd/train/labels",
+    "epochs": 40,
+    "batch_size": 8,
+    "lr": 0.001,
+    "img_size": 256,
+    "base": 32,
+    "val_frac": 0.15,
+    "num_workers": 4,
+    "seed": 42,
+    "device": "auto",
+    "events": [
+      "hurricane-michael",
+      "santa-rosa-wildfire"
+    ],
+    "weighted_loss": true,
+    "out": "checkpoints/unet_best.pt"
+  },
+  "n_val_images": 85,
+  "results": {
+    "UNet (ours)": {
+      "per_class_iou": {
+        "no-damage": 0.21296151999058593,
+        "minor": 0.15373956297743827,
+        "major": 0.1543532035975235,
+        "destroyed": 0.23498595398982614,
+        "background": 0.9269800833111003
+      },
+      "mean_iou": 0.3366040647732948,
+      "pixel_acc": 0.9124848430872358,
+      "building_damage_acc": 0.35118342606324215,
+      "building_damage_f1": {
+        "no-damage": 0.42780065358433195,
+        "minor": 0.3177085627854384,
+        "major": 0.38943001443001446,
+        "destroyed": 0.7631987769092298
+      },
+      "building_damage_macro_f1": 0.47453450192725366
+    },
+    "all background": {
+      "per_class_iou": {
+        "no-damage": 0.0,
+        "minor": 0.0,
+        "major": 0.0,
+        "destroyed": 0.0,
+        "background": 0.9278386408489057
+      },
+      "mean_iou": 0.18556772816978112,
+      "pixel_acc": 0.9278386408489057,
+      "building_damage_acc": 0.0,
+      "building_damage_f1": {
+        "no-damage": 0.0,
+        "minor": 0.0,
+        "major": 0.0,
+        "destroyed": 0.0
+      },
+      "building_damage_macro_f1": 0.0
+    },
+    "oracle footprints + no-damage": {
+      "per_class_iou": {
+        "no-damage": 0.5879159160354729,
+        "minor": 0.0,
+        "major": 0.0,
+        "destroyed": 0.0,
+        "background": 1.0
+      },
+      "mean_iou": 0.3175831832070946,
+      "pixel_acc": 0.9702634524165861,
+      "building_damage_acc": 0.5879159160354729,
+      "building_damage_f1": {
+        "no-damage": 0.7404874654866036,
+        "minor": 0.0,
+        "major": 0.0,
+        "destroyed": 0.0
+      },
+      "building_damage_macro_f1": 0.1851218663716509
+    }
+  },
+  "val_gt_pixel_counts": {
+    "no-damage": 236274,
+    "minor": 73118,
+    "major": 46148,
+    "destroyed": 46344,
+    "background": 5167357
+  }
+}

@@ -184,6 +184,7 @@ def main():
         f"{n}={v / gt_pixels.sum():.4f}" for n, v in zip(CLASS_NAMES, gt_pixels)))
 
     if args.metrics_out:
+        os.makedirs(os.path.dirname(args.metrics_out) or ".", exist_ok=True)
         with open(args.metrics_out, "w") as f:
             json.dump({"checkpoint_epoch": ckpt["epoch"], "train_args": targs,
                        "n_val_images": len(val_ids), "results": results,

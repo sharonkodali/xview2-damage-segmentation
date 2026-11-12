@@ -127,8 +127,7 @@ def fmt_table(results):
     return "\n".join(lines)
 
 
-@torch.no_grad()
-def main():
+def build_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", default="checkpoints/unet_best.pt")
     parser.add_argument("--images-dir", default=None, help="override checkpoint value")
@@ -138,7 +137,12 @@ def main():
     parser.add_argument("--save-examples", default=None, help="dir for sample PNGs")
     parser.add_argument("--n-examples", type=int, default=4)
     parser.add_argument("--metrics-out", default=None, help="write metrics JSON here")
-    args = parser.parse_args()
+    return parser
+
+
+@torch.no_grad()
+def main():
+    args = build_parser().parse_args()
 
     ckpt = torch.load(args.checkpoint, map_location="cpu")
     targs = ckpt["args"]

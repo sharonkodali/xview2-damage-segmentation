@@ -103,7 +103,7 @@ def train_one_epoch(model, loader, device, criterion, optimizer):
     return running / max(n, 1)
 
 
-def main():
+def build_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--images-dir", default="data/train/images")
     parser.add_argument("--labels-dir", default="data/train/labels")
@@ -125,7 +125,11 @@ def main():
         help="weight cross-entropy by inverse-sqrt class pixel frequency",
     )
     parser.add_argument("--out", default="checkpoints/unet_best.pt")
-    args = parser.parse_args()
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
 
     if not os.path.isdir(args.images_dir):
         raise SystemExit(f"images dir not found: {args.images_dir}")

@@ -75,12 +75,12 @@ class XView2Dataset(Dataset):
         return len(self.ids)
 
     def _maybe_augment(self, image, mask):
-        # Consistent flips applied to both the 6-channel image and the mask.
-        if random.random() < 0.5:
-            image = image[:, :, ::-1]
-            mask = mask[:, ::-1]
-        if random.random() < 0.5:
+        # Consistent flips applied to both the (H, W, 6) image and the (H, W) mask.
+        if random.random() < 0.5:  # horizontal: flip the width axis
             image = image[:, ::-1, :]
+            mask = mask[:, ::-1]
+        if random.random() < 0.5:  # vertical: flip the height axis
+            image = image[::-1, :, :]
             mask = mask[::-1, :]
         return np.ascontiguousarray(image), np.ascontiguousarray(mask)
 

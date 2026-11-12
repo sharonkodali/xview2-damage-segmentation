@@ -1,5 +1,7 @@
 # xView2 Building Damage Segmentation
 
+[![tests](https://github.com/sharonkodali/xview2-damage-segmentation/actions/workflows/tests.yml/badge.svg)](https://github.com/sharonkodali/xview2-damage-segmentation/actions/workflows/tests.yml)
+
 A PyTorch pipeline that segments per-building disaster damage from paired
 pre-/post-disaster satellite imagery, using the [xBD](https://xview2.org/)
 dataset. Given a pre-disaster and post-disaster image of the same location,
@@ -155,6 +157,35 @@ python evaluate.py --checkpoint checkpoints/unet_best.pt \
 the checkpoint. The train/val split is deterministic. Training itself isn't
 bit-for-bit deterministic on MPS, so expect small differences in the numbers.
 The dataset and checkpoints are not committed (see `.gitignore`).
+
+**Note on augmentation:** the reported run was trained before a bug in the
+flip augmentation was found (by the test suite below). The horizontal flip
+reversed the image's channel axis instead of its width axis, and the vertical
+flip flipped the image's width while flipping the mask's height, so augmented
+samples had misaligned image/mask pairs. This is fixed in
+[dataset.py](dataset.py); the numbers above are from the original run and have
+not been re-trained, so re-running the commands will give different results.
+
+## Tests
+
+The test suite runs on CPU in a few seconds and needs no xBD data: it builds
+tiny synthetic image + label-JSON fixtures in a temp directory.
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+It covers polygon rasterisation and the damage-class mapping
+([tests/test_mask_utils.py](tests/test_mask_utils.py)), dataset item shapes,
+dtypes, splits and augmentation alignment
+([tests/test_dataset.py](tests/test_dataset.py)), the UNet forward/backward
+pass ([tests/test_model.py](tests/test_model.py)), the IoU and damage macro F1
+metrics against hand-computed answers
+([tests/test_evaluate.py](tests/test_evaluate.py)), and that the commands in
+this README parse with the real CLIs and match the stored training settings
+([tests/test_cli.py](tests/test_cli.py)). CI runs it on every push and pull
+request with CPU-only PyTorch.
 
 ## Limitations & future work
 
